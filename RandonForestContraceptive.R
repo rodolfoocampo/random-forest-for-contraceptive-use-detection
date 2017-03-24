@@ -40,7 +40,7 @@ dp <- data.frame(Max = maxs, Min = mins, Mean = means, SD = sds, Median = median
 kable(dp)
 
 
-house_data <- select(house_data, -id)
+
 
 unique_cat <-  sapply(select(contraceptive, -wifes_age, -wifes_education, -husbands_education, -num_children_born, -standard_of_living_index), 
                       function(x) unique(x))
@@ -105,3 +105,20 @@ abline(a=0, b=1, col="red")
 auc_val <- performance(prediction_validation_obj,measure="auc")
 auc_val@y.values[[1]]
 
+comparison_rf <- data.frame(nodes=numeric(), auc=numeric())
+for (i in 1:30){
+  node_size = i
+  rf_model <- randomForest(contraceptive_method_used ~., data=train_set,ntree=100, nodesize=node_size,   importance=T)
+  rf_prediction <- predict(rf_model, newdata=test_set, type="prob")
+  rf_prediction_test_obj <- prediction(rf_prediction[,2], test_set$contraceptive_method_used)
+  rf_performance_test_obj <- performance(rf_prediction_test_obj, x.measure="fpr",  measure="tpr")
+  auc_val <- performance(rf_prediction_test_obj,measure="auc")
+  auc_val@y.values[[1]]
+  comparison_rf[i,1] <- node_size
+  comparison_rf[i,2] <- auc_val@y.values[[1]]
+}
+
+
+max_auc_rf <- max(comparison_rf[,2]) 
+optimal_point_rf <- filter(comparison_rf, comparison_rf$auc==max_auc_rf)
+optimal_nodes_rf <- optimal_point_rf[,1]
