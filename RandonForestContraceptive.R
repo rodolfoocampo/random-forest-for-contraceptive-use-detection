@@ -96,3 +96,12 @@ optimal_nodes_tree
 max_auc_tree
 
 tree_model <- C5.0(contraceptive_method_used ~., data=train_set, trial_size=10, control=C5.0Control(minCases=optimal_nodes_tree))
+
+predictions_validation <- predict(tree_model, newdata=validation_set, type="prob")
+prediction_validation_obj <- prediction(predictions_validation[,2], validation_set$contraceptive_method_used)
+performance_validation_obj <- performance(prediction_validation_obj, x.measure="fpr", measure="tpr")
+plot(performance_validation_obj)
+abline(a=0, b=1, col="red")
+auc_val <- performance(prediction_validation_obj,measure="auc")
+auc_val@y.values[[1]]
+
