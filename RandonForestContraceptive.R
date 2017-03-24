@@ -39,19 +39,13 @@ dp <- data.frame(Max = maxs, Min = mins, Mean = means, SD = sds, Median = median
 
 kable(dp)
 
-house_data <- read_csv("/Users/rodolfoocampo/Documents/Mineria/Datos/HouseData/kc_house_data.csv")
 
-dim(house_data)
-
-names(house_data)
 house_data <- select(house_data, -id)
 
 unique_cat <-  sapply(select(contraceptive, -wifes_age, -wifes_education, -husbands_education, -num_children_born, -standard_of_living_index), 
                       function(x) unique(x))
 
-unique_cat
 
-head(house_data)
 
 ggplot(contraceptive, aes(x=contraceptive_method_used, fill=contraceptive_method_used)) +
   geom_histogram(stat="count") + labs(x="Use of Contraceptive") +
