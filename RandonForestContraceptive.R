@@ -122,3 +122,128 @@ for (i in 1:30){
 max_auc_rf <- max(comparison_rf[,2]) 
 optimal_point_rf <- filter(comparison_rf, comparison_rf$auc==max_auc_rf)
 optimal_nodes_rf <- optimal_point_rf[,1]
+rf_model <- randomForest(contraceptive_method_used ~., data=train_set,ntree=100, nodesize=optimal_nodes_rf, importance=T)
+
+
+rf_prediction <- predict(rf_model, newdata=test_set, type="prob")
+rf_prediction_test_obj <- prediction(rf_prediction[,2], test_set$contraceptive_method_used)
+
+rf_performance_test_obj <- performance(rf_prediction_test_obj, x.measure="fpr", measure="tpr")
+plot(rf_performance_test_obj)
+abline(a=0, b=1, col="red")
+auc_val <- performance(rf_prediction_test_obj,measure="auc")
+auc_val@y.values[[1]]
+train_set2 <- select(train_set, -wifes_now_working, -wifes_religion, -husbands_occupation)
+
+val_set2 <- select(validation_set, -wifes_now_working, -wifes_religion, -husbands_occupation)
+
+test_set2 <- select(test_set, -wifes_now_working, -wifes_religion, -husbands_occupation)
+
+
+comparison_rf2 <- data.frame(nodes=numeric(), auc=numeric())
+for (i in 1:30){
+  node_size = i
+  rf_model2 <- randomForest(contraceptive_method_used ~., data=train_set2,ntree=100, nodesize=node_size, importance=T)
+  
+  
+  rf_prediction2 <- predict(rf_model2, newdata=test_set2, type="prob")
+  rf_prediction_test_obj2 <- prediction(rf_prediction2[,2], test_set2$contraceptive_method_used)
+  
+  rf_performance_test_obj2 <- performance(rf_prediction_test_obj2, x.measure="fpr", measure="tpr")
+  
+  auc_val_rf2 <- performance(rf_prediction_test_obj2,measure="auc")
+  auc_val_rf2@y.values[[1]]
+  comparison_rf2[i,1] <- node_size
+  comparison_rf2[i,2] <- auc_val_rf2@y.values[[1]]
+}
+
+max_auc_rf2 <- max(comparison_rf2[,2]) 
+optimal_point_rf2 <- filter(comparison_rf2, comparison_rf2$auc==max_auc_rf2)
+optimal_nodes_rf2 <- optimal_point_rf2[,1]
+
+rf_model2 <- randomForest(contraceptive_method_used ~., data=train_set2,ntree=100, nodesize=optimal_nodes_rf2, importance=T)
+varImpPlot(rf_model2)
+
+rf_prediction2 <- predict(rf_model2, newdata=test_set2, type="prob")
+rf_prediction_test_obj2 <- prediction(rf_prediction2[,2], test_set$contraceptive_method_used)
+
+rf_performance_test_obj2 <- performance(rf_prediction_test_obj2, x.measure="fpr", measure="tpr")
+plot(rf_performance_test_obj2)
+abline(a=0, b=1, col="red")
+auc_val_rf2 <- performance(rf_prediction_test_obj2,measure="auc")
+auc_val_rf2@y.values[[1]]
+comparison_tree2 <- data.frame(nodes=numeric(), auc=numeric())
+for (i in 1:30){
+  node_size = i
+  tree_model2 <- C5.0(contraceptive_method_used ~., data=train_set2, trial_size=10, control=C5.0Control(minCases=i))
+  predictions_test2 <- predict(tree_model2, newdata=test_set2, type="prob")
+  prediction_test_obj2 <- prediction(predictions_test2[,2], test_set2$contraceptive_method_used)
+  performance_test_obj2 <- performance(prediction_test_obj2, x.measure="fpr", measure="tpr")
+  auc_val2 <- performance(prediction_test_obj2,measure="auc")
+  auc_val2@y.values[[1]]
+  comparison_tree2[i,1] <- node_size
+  comparison_tree2[i,2] <- auc_val2@y.values[[1]]
+}
+
+
+max_auc_tree2 <- max(comparison_tree2[,2]) 
+optimal_nodes_tree2 <- filter(comparison_tree2, comparison_tree2$auc==max_auc_tree2)
+
+max_auc_tree2
+optimal_nodes_tree2
+comparison_rf3 <- data.frame(nodes=numeric(), trees= numeric(), auc=numeric())
+for (i in 5:35){
+  node_size = i
+  for(j in 80:120){
+    num_tress = j
+    rf_model3 <- randomForest(contraceptive_method_used ~., data=train_set2,ntree=num_tress, nodesize=node_size, importance=T)
+    rf_prediction3 <- predict(rf_model3, newdata=test_set2, type="prob")
+    rf_prediction_test_obj3 <- prediction(rf_prediction3[,2], test_set2$contraceptive_method_used)
+    
+    rf_performance_test_obj3 <- performance(rf_prediction_test_obj3, x.measure="fpr", measure="tpr")
+    
+    auc_val_rf3 <- performance(rf_prediction_test_obj3,measure="auc")
+    vector <- c(nodes=node_size, tress=num_tress, auc=auc_val_rf3@y.values[[1]])
+    comparison_rf3 <- rbind(comparison_rf3, vector)
+    
+  }
+}
+comparison_rf3 <- data.frame(comparison_rf3)
+names(comparison_rf3) <- c("nodes","trees","auc")
+max_auc_rf3 <- max(comparison_rf3[,3]) 
+optimal_point_rf3 <- filter(comparison_rf3, comparison_rf3$auc==max_auc_rf3)
+optimal_nodes_rf3 <- optimal_point_rf3[,1]
+optimal_trees_rf3 <- optimal_point_rf3[,2]
+rf_model3 <- randomForest(contraceptive_method_used ~., data=train_set2,ntree=optimal_trees_rf3, nodesize=optimal_nodes_rf3, importance=T)
+varImpPlot(rf_model3)
+
+rf_prediction3 <- predict(rf_model3, newdata=test_set2, type="prob")
+rf_prediction_test_obj3 <- prediction(rf_prediction3[,2], test_set2$contraceptive_method_used)
+
+rf_performance_test_obj3 <- performance(rf_prediction_test_obj3, x.measure="fpr", measure="tpr")
+plot(rf_performance_test_obj3)
+abline(a=0, b=1, col="red")
+auc_val_rf3 <- performance(rf_prediction_test_obj3,measure="auc")
+auc_val_rf3@y.values[[1]]
+perf_tn_fn <- performance(rf_prediction_test_obj3, measure="tnr", x.measure = "fnr")
+
+roc_table <- data.frame(cutoff=rf_performance_test_obj3@alpha.values[[1]],
+                        tp=rf_performance_test_obj3@y.values[[1]],
+                        fp=rf_performance_test_obj3@x.values[[1]],
+                        tn=perf_tn_fn@y.values[[1]],
+                        fn=perf_tn_fn@x.values[[1]])
+
+negatives <- filter(test_set2, contraceptive_method_used==0) %>% nrow()
+positives <- filter(test_set2, contraceptive_method_used==1) %>% nrow()
+
+costs <- data.frame(cutoff=roc_table$cutoff, cost = (roc_table$fp*100*negatives + roc_table$fn*60*positives) )
+savings <-  data.frame(cutoff=roc_table$cutoff, saved = (roc_table$tp*20*positives + roc_table$tn*10*negatives) )
+
+
+total <- data.frame(cost=costs, saved = savings)
+
+total <- filter(total, total$cost.cost<10000)
+
+net_profit <- data.frame( net_profit = total[,4] - total[,2], cutoff = total$cost.cutoff)
+
+max_profit <- max(net_profit$net_profit)
