@@ -247,3 +247,14 @@ total <- filter(total, total$cost.cost<10000)
 net_profit <- data.frame( net_profit = total[,4] - total[,2], cutoff = total$cost.cutoff)
 
 max_profit <- max(net_profit$net_profit)
+
+
+optimal_cutoff <- filter(net_profit, net_profit$net_profit == max_profit )
+names(optimal_cutoff) <- c("Maximum Profit", "Corresponding Cutoff")
+kable(optimal_cutoff)
+
+final_numbers <- filter(total, total$cost.cutoff == optimal_cutoff[,2])
+kable(final_numbers)
+
+final_error <- filter(roc_table, roc_table$cutoff == optimal_cutoff[,2])
+kable(final_error)
