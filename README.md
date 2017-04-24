@@ -1,1 +1,2 @@
-# random-forest-for-contraceptive-use-detection
+# Random Forest model to predict use of contraceptive
+
