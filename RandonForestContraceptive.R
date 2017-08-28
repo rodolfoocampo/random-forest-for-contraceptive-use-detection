@@ -13,6 +13,8 @@ names(contraceptive) <- c("wifes_age","wifes_education","husbands_education",
                           "husbands_occupation","standard_of_living_index",
                           "media_exposure","contraceptive_method_used")
 
+## change to factors
+
 contraceptive$wifes_religion <- factor(contraceptive$wifes_religion)
 contraceptive$wifes_now_working <- factor(contraceptive$wifes_now_working)
 contraceptive$husbands_occupation <- factor(contraceptive$husbands_occupation)
@@ -24,6 +26,8 @@ contraceptive$contraceptive_method_used <- ifelse(contraceptive$contraceptive_me
 
 contraceptive$contraceptive_method_used <- factor(contraceptive$contraceptive_method_used)
 head(contraceptive)
+
+## data profiling
 
 maxs <- sapply(select(contraceptive, -wifes_religion, -wifes_now_working, -husbands_occupation,-media_exposure,-contraceptive_method_used), function(x) max(x))
 
@@ -46,7 +50,8 @@ unique_cat <-  sapply(select(contraceptive, -wifes_age, -wifes_education, -husba
                       function(x) unique(x))
 
 
-
+## data exploration and visualization
+                      
 ggplot(contraceptive, aes(x=contraceptive_method_used, fill=contraceptive_method_used)) +
   geom_histogram(stat="count") + labs(x="Use of Contraceptive") +
   theme_minimal() 
@@ -62,20 +67,30 @@ ggplot(contraceptive, aes(x=as.factor(wifes_now_working) , fill=as.factor(wifes_
 ggplot(contraceptive, aes(x=as.factor(contraceptive$media_exposure) , fill=as.factor(contraceptive$media_exposure) )) + labs(x="Media Exposure") +
   geom_histogram(stat="count") +
   theme_minimal() 
+                      
+## Train model
 
 set.seed(139909)
 
+## Select training set as 75% of the sample                  
 train_rows <- sample(dim(contraceptive)[1], size=round(dim(contraceptive)[1]*0.75,0), replace=F)
 train_set <- contraceptive[train_rows,]
 
+## Define rest of set as test set                     
 test_set <-contraceptive[-train_rows,]
 
+## Of the 25% remaining, take 3.45% as validation set                    
 validation_rows <- sample(dim(train_set)[1], size=round(dim(train_set)[1]*0.0345,0), replace=F)
 validation_set <- train_set[validation_rows,]
 train_set <- train_set[-validation_rows,]
 
 dim(test_set)[1]
+                      
+## We do several iterations modifying the random forest parameters and also comparing
+##the RF performance versus a simple classification tree
 
+## We do 30 loops with a different number of node sizes each
+                      
 comparison_tree <- data.frame(nodes=numeric(), auc=numeric())
 for (i in 1:30){
   node_size = i
@@ -88,13 +103,15 @@ for (i in 1:30){
   comparison_tree[i,2] <- auc_val@y.values[[1]]
 }
 
-
+## We grab the tree with the highest AUC and find its node size, which we will set for the final tree
+                      
 max_auc_tree <- max(comparison_tree[,2]) 
 optimal_nodes_tree <- filter(comparison_tree, comparison_tree$auc==max_auc_tree)
 
 optimal_nodes_tree
 max_auc_tree
 
+## Train tree with previously found number of nodes                   
 tree_model <- C5.0(contraceptive_method_used ~., data=train_set, trial_size=10, control=C5.0Control(minCases=optimal_nodes_tree))
 
 predictions_validation <- predict(tree_model, newdata=validation_set, type="prob")
@@ -105,6 +122,7 @@ abline(a=0, b=1, col="red")
 auc_val <- performance(prediction_validation_obj,measure="auc")
 auc_val@y.values[[1]]
 
+ ## Train 30 trees each with different nodesize for its trees                    
 comparison_rf <- data.frame(nodes=numeric(), auc=numeric())
 for (i in 1:30){
   node_size = i
@@ -118,7 +136,7 @@ for (i in 1:30){
   comparison_rf[i,2] <- auc_val@y.values[[1]]
 }
 
-
+## Find best random forest and train it
 max_auc_rf <- max(comparison_rf[,2]) 
 optimal_point_rf <- filter(comparison_rf, comparison_rf$auc==max_auc_rf)
 optimal_nodes_rf <- optimal_point_rf[,1]
@@ -133,6 +151,9 @@ plot(rf_performance_test_obj)
 abline(a=0, b=1, col="red")
 auc_val <- performance(rf_prediction_test_obj,measure="auc")
 auc_val@y.values[[1]]
+                      
+## Remove variables that provide the least information and retrain 30 random forests to find the optimal parameters
+                      
 train_set2 <- select(train_set, -wifes_now_working, -wifes_religion, -husbands_occupation)
 
 val_set2 <- select(validation_set, -wifes_now_working, -wifes_religion, -husbands_occupation)
@@ -233,6 +254,9 @@ roc_table <- data.frame(cutoff=rf_performance_test_obj3@alpha.values[[1]],
                         tn=perf_tn_fn@y.values[[1]],
                         fn=perf_tn_fn@x.values[[1]])
 
+                      
+ ## Assuming 100 cost for false positives and and 60 for false negatives, we compute costs
+ ## Assuming 20 savings por Treu positives and 10 for true negatives, compute savings and obtain total profit of model                     
 negatives <- filter(test_set2, contraceptive_method_used==0) %>% nrow()
 positives <- filter(test_set2, contraceptive_method_used==1) %>% nrow()
 
